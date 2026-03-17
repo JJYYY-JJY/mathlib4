@@ -1,4 +1,4 @@
-name: Daily master sync
+name: Daily master tag
 
 on:
   schedule:
@@ -10,23 +10,23 @@ permissions:
   contents: write
 
 jobs:
-  sync-master:
+  tag:
     runs-on: ubuntu-latest
-    if: github.repository != 'leanprover-community/mathlib4'
+    if: github.repository == 'leanprover-community/mathlib4'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: master
-          fetch-depth: 0
 
-      - name: Sync master from upstream
+      - name: Create daily tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git remote add upstream https://github.com/leanprover-community/mathlib4.git
-          git fetch upstream master
-          if [ "$(git rev-parse master)" = "$(git rev-parse upstream/master)" ]; then
-            echo "master is already up to date"
+          TAG="master-$(date -u +%Y-%m-%d)"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "Tag $TAG already exists, skipping"
           else
-            git merge --ff-only upstream/master
-            git push origin master
-            echo "Updated master to upstream/master"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created tag $TAG"
           fi
